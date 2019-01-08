@@ -3,8 +3,8 @@ APP_NAME=signals
 
 all: ${APP_NAME}
 
-${APP_NAME}: signals.c
-	gcc signals.c -Wall -Wextra -g3 -o ${APP_NAME} -levent
+${APP_NAME}: ${APP_NAME}.c ../libevent_helpers.c ../libevent_helpers.h
+	gcc ${APP_NAME}.c ../libevent_helpers.c -Wall -Wextra -g3 -o ${APP_NAME} -levent
 
 clean:
 	rm -f ${APP_NAME}
