@@ -1,3 +1,7 @@
 # Description
 
-Simple program that shows that you can use libevent to process "signal" events. It also illustrates basic "libevent" usage pattern - create **event_base**, add events to it and then **dispatch** on the **event_base**.
+Simple programm to illustrate creation of *event_base*
+and adding simple event to it (event is based on listening
+tcp socket, when new connection is established event is
+triggered, message is printed and connection is immediately
+closed by the server).

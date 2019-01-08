@@ -1,3 +1,6 @@
 # Description
 
-Simple program that shows that you can use libevent to process "signal" events. It also illustrates basic "libevent" usage pattern - create **event_base**, add events to it and then **dispatch** on the **event_base**.
+Echo server.
+Create event on each connection and wait till there 
+will be data to read and add write event to the loop
+to write data back when socket will be ready for it.
