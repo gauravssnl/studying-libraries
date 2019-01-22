@@ -6,3 +6,4 @@ I hope my materials also will be useful for other developers.
 
 # List of libraries:
 - [libevent](https://libevent.org/)
+- [liblua](https://www.lua.org/)
