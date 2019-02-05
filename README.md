@@ -6,4 +6,5 @@ I hope my materials also will be useful for other developers.
 
 # List of libraries:
 - [libevent](https://libevent.org/)
+- [libev](http://software.schmorp.de/pkg/libev.html)
 - [liblua](https://www.lua.org/)
