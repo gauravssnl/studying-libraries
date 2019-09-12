@@ -1,5 +1,15 @@
 #include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#include <netdb.h>
+
 
 #include <nghttp2/nghttp2.h>
 
@@ -127,10 +137,41 @@ on_data_chunk_recv_callback(nghttp2_session *session, uint8_t flags,
   return 0;
 }
 
+#define TARGET_HOST "nghttp2.org"
+#define TARGET_HOST_PORT "nghttp2.org:80"
+#define TARGET_PATH "/httpbin/get"
 
+int connect_to_server()
+{
+    struct addrinfo *result, *rp;
+    int sfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sfd == -1)
+        ERR_EXIT("socket failed\n");
+
+    if (getaddrinfo(TARGET_HOST, "http", NULL, &result))
+        ERR_EXIT("getaddringo failed\n");
+
+    for (rp = result; rp != NULL; rp = rp->ai_next) {
+        if (connect(sfd, rp->ai_addr, rp->ai_addrlen) == -1) {
+            fprintf(stderr, "%s\n", strerror(errno));
+            struct sockaddr_in *sin = (struct sockaddr_in *)rp->ai_addr;
+            fprintf(stderr, "Failed to connect to %s:%d\n",
+                    inet_ntoa(sin->sin_addr), (int)ntohs(sin->sin_port));
+            continue;
+        }
+
+        LOG("Successfully connected to " TARGET_HOST "\n");
+        freeaddrinfo(result);
+        return sfd;
+    }
+
+    ERR_EXIT("Failed to connect to " TARGET_HOST);
+}
 
 int main()
 {
+    int fd = connect_to_server();
+    int status = 0;
 	// Initialize library callbacks
 	nghttp2_session_callbacks *callbacks;
 	nghttp2_session_callbacks_new(&callbacks);
@@ -146,21 +187,16 @@ int main()
 
 	// Create http2 session
 	session_data_t data;
-	nghttp2_session_client_new(&data.session, callbacks, &data);
-	nghttp2_session_del(data.session);
+	status = nghttp2_session_client_new(&data.session, callbacks, &data);
+    if (status)
+        ERR_EXIT("nghttp2_session_client_new failed\n");
 
 
 	// send_client_connection_header
-	/*  DOESN'T WORK !!!!!!!!
-	nghttp2_settings_entry iv[1] = {
-		{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100}};
-	int rv;
 	// client 24 bytes magic string will be sent by nghttp2 library 
-	rv = nghttp2_submit_settings(data.session, NGHTTP2_FLAG_NONE, iv, ARRLEN(iv));
-	if (rv != 0) {
+	nghttp2_settings_entry iv[1] = {{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100}};
+	if (nghttp2_submit_settings(data.session, NGHTTP2_FLAG_NONE, iv, ARRLEN(iv)))
 		ERR_EXIT("nghttp2_submit_settings failed\n");
-	}
-	*/
 	
 
 	// submit_request
@@ -168,20 +204,20 @@ int main()
 	nghttp2_nv hdrs[] = {
 		MAKE_NV2(":method", "GET"),
 		MAKE_NV2(":scheme", "http"),
-		MAKE_NV2(":authority", "nghttp2.org"),
-		MAKE_NV2(":path", "/httpbin/get")
+		MAKE_NV2(":authority", TARGET_HOST_PORT),
+		MAKE_NV2(":path", TARGET_PATH)
 	};
 	fprintf(stderr, "Request headers:\n");
 	print_headers(stderr, hdrs, ARRLEN(hdrs));
-	int32_t stream_id = nghttp2_submit_request(data.session, NULL, hdrs,
-                                     ARRLEN(hdrs), NULL, NULL/*stream_data*/);
+	int32_t stream_id = nghttp2_submit_request(data.session, NULL, hdrs, ARRLEN(hdrs), NULL, NULL);
 	if (stream_id < 0) 
 		ERR_EXIT("Could not submit HTTP request");
 
-	int rv = nghttp2_session_send(data.session);
-	if (rv != 0) 
+	if (nghttp2_session_send(data.session))
 		ERR_EXIT("Fatal error");
 
 	// Clean up
+	nghttp2_session_del(data.session);
 	nghttp2_session_callbacks_del(callbacks);
+    close(fd);
 }
