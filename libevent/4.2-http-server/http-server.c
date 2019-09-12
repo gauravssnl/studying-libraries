@@ -38,7 +38,7 @@ void on_request(struct evhttp_request *req, void *arg)
     // Add heading text
     evbuffer_add_printf(evb, "<HTML><HEAD><TITLE>%s Page</TITLE></HEAD><BODY>\n", SERVER_NAME);
     // Add response
-    evbuffer_add(evb, RESPONCE, strlen(RESPONCE) + 1);
+    evbuffer_add(evb, RESPONCE, strlen(RESPONCE));
     // Add formatted text
     evbuffer_add_printf(evb, "Your request is <B>%s</B> from <B>%s</B>.<BR/>Your user agent is '%s'\n", 
         req->uri, req->remote_host,
@@ -52,6 +52,7 @@ void on_request(struct evhttp_request *req, void *arg)
 
     // Send reply
     evhttp_send_reply(req, HTTP_OK, "OK", evb);
+    LOG_INFO("Response send to %s:%d", req->remote_host, req->remote_port);
 
     // Free memory
     evbuffer_free(evb);
